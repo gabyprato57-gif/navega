@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galaxia Navega - Defensa Intergaláctica</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #050010; font-family: 'Courier New', monospace; overflow: hidden; }
+        #mainMenu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 200; }
+        #mainMenu.hidden { display: none; }
+        #backgroundGameplay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+        .menu-content { position: relative; z-index: 2; text-align: center; }
+        .menu-title { font-size: 72px; color: #ff00ff; text-shadow: 0 0 20px #ff00ff, 0 0 40px #ff00ff, 0 0 60px #ff00ff; margin-bottom: 10px; animation: titleGlow 2s infinite; }
+        @keyframes titleGlow {
+            0%, 100% { text-shadow: 0 0 20px #ff00ff, 0 0 40px #ff00ff, 0 0 60px #ff00ff; transform: scale(1); color: #ff00ff; }
+            50% { text-shadow: 0 0 30px #00ffff, 0 0 50px #00ffff, 0 0 80px #00ffff; transform: scale(1.02); color: #00ffff; }
+        }
+        .menu-subtitle { font-size: 24px; color: #ffff00; margin-bottom: 40px; text-shadow: 0 0 10px #ffff00; animation: pulse 2s infinite; font-weight: bold; }
+        .menu-buttons { display: flex; gap: 20px; flex-direction: column; background: rgba(0,0,0,0.85); padding: 40px; border: 4px solid #ff00ff; border-radius: 15px; box-shadow: 0 0 40px rgba(255,0,255,0.8), 0 0 80px rgba(0,255,255,0.4); backdrop-filter: blur(10px); }
+        .menu-btn { padding: 18px 45px; font-size: 22px; border: 3px solid #ff00ff; background: linear-gradient(135deg, rgba(255,0,255,0.15), rgba(0,255,255,0.05)); color: #ff00ff; cursor: pointer; text-shadow: 0 0 10px #ff00ff; transition: all 0.3s; border-radius: 8px; min-width: 280px; font-weight: bold; font-family: 'Courier New', monospace; }
+        .menu-btn:hover { background: linear-gradient(135deg, rgba(255,0,255,0.4), rgba(0,255,255,0.2)); color: #fff; box-shadow: 0 0 30px #ff00ff, 0 0 60px #00ffff; transform: scale(1.08); border-color: #00ffff; }
+        .copyright { position: absolute; bottom: 15px; width: 100%; text-align: center; color: #ff00ff; font-size: 12px; opacity: 0.6; text-shadow: 0 0 5px #ff00ff; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+
+        #dressUpScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #0a0a2a, #1a0a2a); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 150; overflow-y: auto; padding: 20px; }
+        #dressUpScreen.show { display: flex; }
+        .dress-up-header { position: fixed; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 12px 30px; z-index: 151; background: rgba(0,0,0,0.95); border-bottom: 3px solid #9d4edd; box-shadow: 0 0 20px rgba(157,78,221,0.5); }
+        .shop-info { color: #ffff00; font-size: 20px; font-weight: bold; text-shadow: 0 0 10px #ffff00; }
+        .dress-up-container { display: flex; gap: 60px; align-items: flex-start; background: rgba(0,0,0,0.9); padding: 50px; border: 4px solid #9d4edd; border-radius: 15px; box-shadow: 0 0 50px rgba(157,78,221,0.8); max-width: 1300px; max-height: 80vh; overflow-y: auto; backdrop-filter: blur(10px); margin-top: 80px; }
+        .dress-up-container::-webkit-scrollbar { width: 12px; }
+        .dress-up-container::-webkit-scrollbar-track { background: rgba(0,0,0,0.5); border-radius: 10px; }
+        .dress-up-container::-webkit-scrollbar-thumb { background: #9d4edd; border-radius: 10px; }
+        .player-preview { display: flex; flex-direction: column; align-items: center; gap: 20px; min-width: 280px; }
+        #playerPreviewCanvas { border: 3px solid #9d4edd; background: linear-gradient(135deg, rgba(0,0,0,0.8), rgba(157,78,221,0.1)); width: 280px; height: 280px; border-radius: 10px; box-shadow: 0 0 30px rgba(157,78,221,0.6); }
+        .preview-label { color: #9d4edd; font-size: 20px; font-weight: bold; text-shadow: 0 0 10px #9d4edd; }
+        .clothing-options { display: flex; flex-direction: column; gap: 35px; flex: 1; }
+        .clothing-category { display: flex; flex-direction: column; gap: 12px; background: rgba(157,78,221,0.1); padding: 20px; border-left: 4px solid #9d4edd; border-radius: 5px; }
+        .category-title { color: #ffff00; font-size: 20px; font-weight: bold; text-shadow: 0 0 10px #ffff00; }
+        .clothing-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+        .clothing-btn { padding: 10px 14px; border: 2px solid; background: rgba(0,0,0,0.75); color: #fff; cursor: pointer; font-size: 13px; transition: all 0.3s; border-radius: 6px; font-weight: bold; text-align: center; min-width: 90px; font-family: 'Courier New', monospace; }
+        .clothing-btn:hover { transform: translateY(-3px); background: rgba(255,255,255,0.15); box-shadow: 0 5px 15px rgba(255,255,255,0.3); }
+        .clothing-btn.active { background: rgba(255,255,255,0.25); color: #fff; box-shadow: 0 0 20px currentColor; border-color: #fff; text-shadow: 0 0 8px #fff; }
+        .volver-btn { padding: 18px 45px; font-size: 20px; border: 3px solid #9d4edd; background: linear-gradient(135deg, rgba(157,78,221,0.2), rgba(157,78,221,0.1)); color: #9d4edd; cursor: pointer; text-shadow: 0 0 10px #9d4edd; transition: all 0.3s; border-radius: 8px; font-weight: bold; align-self: flex-start; margin-top: 20px; font-family: 'Courier New', monospace; }
+        .volver-btn:hover { background: linear-gradient(135deg, rgba(157,78,221,0.4), rgba(157,78,221,0.2)); color: #fff; box-shadow: 0 0 30px #9d4edd; transform: scale(1.05); }
+
+        #confirmationModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 300; backdrop-filter: blur(5px); }
+        #confirmationModal.show { display: flex; }
+        .confirmation-box { background: rgba(0,0,0,0.95); border: 4px solid #ffff00; padding: 40px; border-radius: 15px; text-align: center; max-width: 500px; box-shadow: 0 0 50px rgba(255,255,0,0.8); animation: popIn 0.3s ease-out; }
+        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .confirmation-title { color: #ffff00; font-size: 32px; font-weight: bold; margin-bottom: 20px; text-shadow: 0 0 15px #ffff00; }
+        .confirmation-item { background: rgba(255,255,0,0.1); border: 2px solid #ffff00; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .item-name { color: #ffff00; font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+        .item-details { color: #00ff00; font-size: 16px; margin-bottom: 10px; }
+        .item-cost { color: #ffd700; font-size: 20px; font-weight: bold; }
+        .money-info { background: rgba(255,215,0,0.1); border: 2px solid #ffd700; padding: 15px; border-radius: 8px; margin-bottom: 20px; color: #ffd700; font-size: 18px; font-weight: bold; }
+        .confirmation-buttons { display: flex; gap: 20px; justify-content: center; margin-top: 30px; }
+        .confirm-btn { padding: 15px 40px; font-size: 18px; border: 3px solid #00ff00; background: linear-gradient(135deg, rgba(0,255,0,0.2), rgba(0,255,0,0.1)); color: #00ff00; cursor: pointer; text-shadow: 0 0 10px #00ff00; transition: all 0.3s; border-radius: 8px; font-weight: bold; flex: 1; font-family: 'Courier New', monospace; }
+        .confirm-btn:hover { background: linear-gradient(135deg, rgba(0,255,0,0.4), rgba(0,255,0,0.2)); box-shadow: 0 0 20px #00ff00; transform: scale(1.05); }
+        .cancel-btn { padding: 15px 40px; font-size: 18px; border: 3px solid #ff0000; background: linear-gradient(135deg, rgba(255,0,0,0.2), rgba(255,0,0,0.1)); color: #ff0000; cursor: pointer; text-shadow: 0 0 10px #ff0000; transition: all 0.3s; border-radius: 8px; font-weight: bold; flex: 1; font-family: 'Courier New', monospace; }
+        .cancel-btn:hover { background: linear-gradient(135deg, rgba(255,0,0,0.4), rgba(255,0,0,0.2)); box-shadow: 0 0 20px #ff0000; transform: scale(1.05); }
+
+        #levelMapScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #0a0a2a, #1a0a2a); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 150; padding: 20px; }
+        #levelMapScreen.show { display: flex; }
+        .level-map-container { background: rgba(0,0,0,0.9); border: 4px solid #00ff00; padding: 50px; border-radius: 15px; max-width: 1300px; max-height: 90vh; overflow-y: auto; box-shadow: 0 0 50px rgba(0,255,0,0.8); backdrop-filter: blur(10px); }
+        .level-map-title { color: #ffff00; font-size: 36px; text-align: center; margin-bottom: 40px; text-shadow: 0 0 15px #ffff00; font-weight: bold; }
+        .level-map-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 25px; margin-bottom: 30px; }
+        .level-button { padding: 25px; border: 3px solid #00ff00; background: linear-gradient(135deg, rgba(0,255,0,0.15), rgba(0,255,0,0.05)); color: #00ff00; cursor: pointer; font-size: 17px; border-radius: 10px; transition: all 0.3s; text-align: center; position: relative; min-height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-weight: bold; box-shadow: 0 0 20px rgba(0,255,0,0.3); font-family: 'Courier New', monospace; }
+        .level-button:hover { background: linear-gradient(135deg, rgba(0,255,0,0.3), rgba(0,255,0,0.15)); box-shadow: 0 0 30px #00ff00; transform: scale(1.08); }
+        .level-button.locked { opacity: 0.3; cursor: not-allowed; }
+        .level-button.boss { border-color: #ff0000; background: linear-gradient(135deg, rgba(255,0,0,0.15), rgba(255,0,0,0.05)); color: #ff0000; box-shadow: 0 0 20px rgba(255,0,0,0.3); }
+        .level-button.boss:hover { box-shadow: 0 0 30px #ff0000; }
+
+        #powerSelectScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #0a0a2a, #1a0a2a); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 150; padding: 20px; overflow-y: auto; }
+        #powerSelectScreen.show { display: flex; }
+        .power-select-container { background: rgba(0,0,0,0.9); border: 4px solid #ff00ff; padding: 50px; border-radius: 15px; max-width: 1200px; text-align: center; box-shadow: 0 0 50px rgba(255,0,255,0.8); backdrop-filter: blur(10px); }
+        .power-select-title { color: #ffff00; font-size: 36px; margin-bottom: 10px; text-shadow: 0 0 15px #ffff00; font-weight: bold; }
+        .power-select-subtitle { color: #00ffff; font-size: 18px; margin-bottom: 15px; text-shadow: 0 0 10px #00ffff; }
+        .player-money-info { color: #ffd700; font-size: 20px; margin-bottom: 30px; font-weight: bold; text-shadow: 0 0 10px #ffd700; }
+        .power-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 25px; margin-bottom: 30px; }
+        .power-button { padding: 25px; border: 3px solid #ff00ff; background: linear-gradient(135deg, rgba(255,0,255,0.15), rgba(255,0,255,0.05)); color: #ff00ff; cursor: pointer; font-size: 15px; border-radius: 10px; transition: all 0.3s; min-height: 160px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-weight: bold; box-shadow: 0 0 20px rgba(255,0,255,0.3); font-family: 'Courier New', monospace; }
+        .power-button:hover { background: linear-gradient(135deg, rgba(255,0,255,0.3), rgba(255,0,255,0.15)); box-shadow: 0 0 30px #ff00ff; transform: scale(1.08); }
+        .power-button.unavailable { opacity: 0.5; cursor: not-allowed; background: linear-gradient(135deg, rgba(100,100,100,0.15), rgba(100,100,100,0.05)); border-color: #666; color: #888; }
+        .power-button.locked-power { opacity: 0.3; cursor: not-allowed; background: linear-gradient(135deg, rgba(100,100,100,0.15), rgba(100,100,100,0.05)); border-color: #666; color: #888; }
+        .power-icon { font-size: 42px; margin-bottom: 8px; }
+        .power-name { font-weight: bold; margin-bottom: 5px; font-size: 14px; }
+        .power-cost { color: #ffd700; font-size: 16px; margin-top: 8px; font-weight: bold; }
+        .power-desc { font-size: 11px; opacity: 0.8; margin-top: 5px; }
+        .selected-powers { color: #00ff00; font-size: 18px; margin-bottom: 25px; font-weight: bold; text-shadow: 0 0 10px #00ff00; }
+        .power-buttons-group { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; }
+
+        #gameContainer { position: relative; width: 800px; height: 600px; background-color: #000; border: 3px solid #00ff00; box-shadow: 0 0 30px rgba(0,255,0,0.8); overflow: hidden; display: none; }
+        #gameContainer.show { display: block; }
+        canvas { display: block; width: 100%; height: 100%; }
+        #gameUI { position: absolute; top: 10px; width: 100%; display: flex; justify-content: space-between; padding: 0 15px; color: #00ff00; font-size: 18px; font-weight: bold; text-shadow: 0 0 10px #00ff00; z-index: 10; pointer-events: none; }
+        .ui-section { text-align: center; flex: 1; }
+        #activePowersDisplay { position: absolute; top: 60px; left: 15px; background: rgba(0,0,0,0.85); border: 2px solid #ff00ff; padding: 15px; border-radius: 8px; color: #ff00ff; font-size: 13px; z-index: 10; max-width: 250px; font-weight: bold; text-shadow: 0 0 5px #ff00ff; line-height: 1.6; white-space: pre-line; }
+        #settingsBtn { position: absolute; top: 15px; right: 15px; background: linear-gradient(135deg, rgba(0,255,0,0.2), rgba(0,255,0,0.1)); border: 2px solid #00ff00; color: #00ff00; padding: 12px 18px; cursor: pointer; font-size: 18px; border-radius: 8px; z-index: 20; transition: all 0.3s; font-weight: bold; font-family: 'Courier New', monospace; }
+        #settingsBtn:hover { background: linear-gradient(135deg, rgba(0,255,0,0.4), rgba(0,255,0,0.2)); box-shadow: 0 0 20px #00ff00; }
+        #settingsPanel { position: absolute; top: 70px; right: 15px; background: rgba(0,0,0,0.95); border: 3px solid #00ff00; padding: 25px; border-radius: 10px; z-index: 21; display: none; min-width: 320px; max-height: 80vh; overflow-y: auto; box-shadow: 0 0 30px rgba(0,255,0,0.6); backdrop-filter: blur(10px); }
+        #settingsPanel.show { display: block; }
+        .setting-item { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; color: #00ff00; padding: 12px; background: rgba(0,255,0,0.05); border-left: 3px solid #00ff00; border-radius: 5px; }
+        .setting-label { font-size: 15px; font-weight: bold; }
+        .toggle-switch { position: relative; width: 55px; height: 28px; background-color: #444; border-radius: 14px; cursor: pointer; transition: background-color 0.3s; border: 2px solid #00ff00; }
+        .toggle-switch.active { background-color: #00ff00; }
+        .toggle-slider { position: absolute; top: 2px; left: 2px; width: 24px; height: 24px; background-color: white; border-radius: 50%; transition: left 0.3s; }
+        .toggle-switch.active .toggle-slider { left: 30px; }
+        .volume-control { display: flex; align-items: center; gap: 12px; flex: 1; }
+        .volume-slider { width: 120px; height: 8px; -webkit-appearance: none; appearance: none; background: #444; border-radius: 5px; outline: none; border: 1px solid #00ff00; }
+        .volume-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; background: #00ff00; border-radius: 50%; cursor: pointer; box-shadow: 0 0 10px #00ff00; }
+        .volume-slider::-moz-range-thumb { width: 20px; height: 20px; background: #00ff00; border-radius: 50%; cursor: pointer; border: none; box-shadow: 0 0 10px #00ff00; }
+        .volume-value { width: 40px; text-align: right; font-size: 13px; font-weight: bold; }
+        .settings-button-group { display: flex; gap: 10px; margin-top: 20px; flex-direction: column; }
+        .small-btn { width: 100%; padding: 10px; border: 2px solid #00ff00; background: linear-gradient(135deg, rgba(0,255,0,0.2), rgba(0,255,0,0.1)); color: #00ff00; cursor: pointer; border-radius: 5px; font-weight: bold; transition: all 0.3s; font-size: 13px; font-family: 'Courier New', monospace; }
+        .small-btn:hover { background: linear-gradient(135deg, rgba(0,255,0,0.4), rgba(0,255,0,0.2)); box-shadow: 0 0 15px #00ff00; }
+        .settings-copyright { color: #00ff00; font-size: 11px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #00ff00; opacity: 0.6; }
+
+        #gameOverMenu, #levelCompleteMenu, #victoryScreen { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); padding: 50px; border: 4px solid #ff0000; text-align: center; z-index: 100; border-radius: 15px; box-shadow: 0 0 40px rgba(255,0,0,0.8); min-width: 420px; animation: slideIn 0.5s ease-out; backdrop-filter: blur(10px); }
+        #levelCompleteMenu { border-color: #00ff00; box-shadow: 0 0 40px rgba(0,255,0,0.8); min-width: 500px; }
+        #victoryScreen { border-color: #ffff00; box-shadow: 0 0 50px rgba(255,255,0,0.8); min-width: 520px; }
+        @keyframes slideIn { from { transform: translate(-50%, -60%); opacity: 0; } to { transform: translate(-50%, -50%); opacity: 1; } }
+        #gameOverMenu h1, #levelCompleteMenu h1, #victoryScreen h1 { font-size: 64px; margin-bottom: 20px; text-shadow: 0 0 20px currentColor; font-weight: bold; }
+        #gameOverMenu h1 { color: #ff0000; }
+        #levelCompleteMenu h1 { color: #00ff00; }
+        #victoryScreen h1 { color: #ffff00; font-size: 72px; }
+        .menu-text { color: #fff; font-size: 18px; margin: 15px 0; }
+        .menu-score { color: #ffff00; font-size: 28px; margin: 20px 0; font-weight: bold; text-shadow: 0 0 10px #ffff00; }
+        .menu-instruction { color: #00ff00; font-size: 16px; margin-top: 30px; font-weight: bold; text-shadow: 0 0 10px #00ff00; }
+        .hearts-display { position: absolute; bottom: 70px; left: 15px; color: #ff0000; font-size: 24px; z-index: 10; text-shadow: 0 0 10px #ff0000; font-weight: bold; }
+        #controls { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); color: #00ff00; font-size: 12px; text-align: center; opacity: 0.8; pointer-events: none; font-weight: bold; display: none; }
+        .boss-health-bar { position: absolute; top: 50px; left: 50%; transform: translateX(-50%); width: 300px; height: 25px; background: rgba(0,0,0,0.9); border: 3px solid #ff0000; z-index: 10; display: none; border-radius: 5px; box-shadow: 0 0 20px rgba(255,0,0,0.6); }
+        .boss-health-bar.show { display: block; }
+        .boss-health-fill { height: 100%; background: linear-gradient(90deg, #ff0000, #ff6600); width: 100%; border-radius: 3px; }
+        .boss-name { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); color: #ff0000; font-size: 22px; font-weight: bold; z-index: 10; display: none; text-shadow: 0 0 15px #ff0000; }
+        .boss-name.show { display: block; }
+        .enemy-count { position: absolute; top: 60px; left: 50%; transform: translateX(-50%); color: #ff6600; font-size: 16px; font-weight: bold; z-index: 10; text-shadow: 0 0 10px #ff6600; }
+        #pauseBtn { position: absolute; top: 15px; right: 130px; background: linear-gradient(135deg, rgba(255,200,0,0.2), rgba(255,200,0,0.1)); border: 2px solid #ffcc00; color: #ffcc00; padding: 12px 16px; cursor: pointer; font-size: 18px; border-radius: 8px; z-index: 20; transition: all 0.3s; font-weight: bold; font-family: 'Courier New', monospace; }
+        #pauseBtn:hover { background: linear-gradient(135deg,rgba(255,200,0,0.4),rgba(255,200,0,0.2)); box-shadow: 0 0 20px #ffcc00; }
+        #manualBtn { position: absolute; top: 15px; right: 245px; background: linear-gradient(135deg, rgba(0,200,255,0.2), rgba(0,200,255,0.1)); border: 2px solid #00c8ff; color: #00c8ff; padding: 12px 16px; cursor: pointer; font-size: 18px; border-radius: 8px; z-index: 20; transition: all 0.3s; font-weight: bold; font-family: 'Courier New', monospace; }
+        #manualBtn:hover { background: linear-gradient(135deg,rgba(0,200,255,0.4),rgba(0,200,255,0.2)); box-shadow: 0 0 20px #00c8ff; }
+        #manualPanel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); display: none; justify-content: center; align-items: center; z-index: 500; backdrop-filter: blur(8px); }
+        #manualPanel.show { display: flex; }
+        .manual-box { background: rgba(0,5,30,0.98); border: 4px solid #00c8ff; border-radius: 16px; padding: 40px; max-width: 680px; width: 90%; box-shadow: 0 0 60px rgba(0,200,255,0.7); animation: popIn 0.3s ease-out; max-height: 90vh; overflow-y: auto; }
+        .manual-title { color: #00c8ff; font-size: 28px; font-weight: bold; text-align: center; margin-bottom: 25px; text-shadow: 0 0 15px #00c8ff; }
+        .manual-section { margin-bottom: 18px; }
+        .manual-section h3 { color: #ffff00; font-size: 17px; margin-bottom: 8px; text-shadow: 0 0 8px #ffff00; }
+        .manual-section p, .manual-section li { color: #cce8ff; font-size: 14px; line-height: 1.7; }
+        .manual-section ul { padding-left: 20px; }
+        .manual-close { display: block; margin: 25px auto 0; padding: 14px 40px; font-size: 18px; border: 3px solid #00c8ff; background: rgba(0,200,255,0.15); color: #00c8ff; cursor: pointer; border-radius: 8px; font-weight: bold; transition: all 0.3s; font-family: 'Courier New', monospace; }
+        .manual-close:hover { background: rgba(0,200,255,0.35); box-shadow: 0 0 20px #00c8ff; }
+        .complete-buttons { display: flex; gap: 20px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+    </style>
+</head>
+<body>
+
+<!-- MODAL DE CONFIRMACIÓN -->
+<div id="confirmationModal">
+    <div class="confirmation-box">
+        <div class="confirmation-title">¿CONFIRMAR COMPRA?</div>
+        <div style="display:flex;gap:20px;align-items:center;margin-bottom:15px;">
+            <canvas id="confirmPreviewCanvas" width="140" height="140" style="border:2px solid #9d4edd;border-radius:8px;background:#050020;flex-shrink:0;box-shadow:0 0 15px rgba(157,78,221,0.5);"></canvas>
+            <div style="flex:1;">
+                <div class="confirmation-item" style="margin-bottom:10px;">
+                    <div class="item-name" id="itemName">Nombre</div>
+                    <div class="item-details" id="itemDetails">Detalles</div>
+                    <div class="item-cost">Costo: <span id="itemCost">0</span> 💰</div>
+                </div>
+                <div class="money-info" style="margin-bottom:0;">Tu dinero: <span id="moneyDisplay">0</span> 💰</div>
+            </div>
+        </div>
+        <div class="confirmation-buttons">
+            <button class="confirm-btn" onclick="confirmPurchase()">✓ CONFIRMAR</button>
+            <button class="cancel-btn" onclick="cancelPurchase()">✗ CANCELAR</button>
+        </div>
+    </div>
+</div>
+
+<!-- PANTALLA PRINCIPAL -->
+<div id="mainMenu">
+    <canvas id="backgroundGameplay"></canvas>
+    <div class="menu-content">
+        <div class="menu-title">⚔️ GALAXIA NAVEGA ⚔️</div>
+        <div class="menu-subtitle">🌌 Defensa Intergaláctica 🌌</div>
+        <div class="menu-buttons">
+            <button class="menu-btn" onclick="goToDressUp()">👗 Vestidor</button>
+            <button class="menu-btn" onclick="goToLevelMap()">🚀 Niveles</button>
+        </div>
+    </div>
+    <div class="copyright">© 2026 GALAXIA NAVEGA</div>
+</div>
+
+<!-- VESTUARIO -->
+<div id="dressUpScreen">
+    <div class="dress-up-header">
+        <button class="volver-btn" style="margin:0;" onclick="goToMainMenu()">← Volver</button>
+        <div class="shop-info">💰 Monedas: <span id="coinsDisplay">0</span></div>
+    </div>
+    <div class="dress-up-container">
+        <div class="player-preview">
+            <div class="preview-label">Tu Nave</div>
+            <canvas id="playerPreviewCanvas" width="280" height="280"></canvas>
+        </div>
+        <div class="clothing-options">
+            <div class="clothing-category">
+                <div class="category-title">🎨 Color de Nave</div>
+                <div class="clothing-buttons" id="colorButtons"></div>
+            </div>
+            <div class="clothing-category">
+                <div class="category-title">😎 Gafas</div>
+                <div class="clothing-buttons" id="glassesButtons"></div>
+            </div>
+            <div class="clothing-category">
+                <div class="category-title">👑 Avatar de Nave</div>
+                <div class="clothing-buttons" id="accessoryButtons"></div>
+            </div>
+            <div class="clothing-category">
+                <div class="category-title">⚡ Accesorios Secundarios</div>
+                <div class="clothing-buttons" id="secondaryButtons"></div>
+            </div>
+            <div class="clothing-category">
+                <div class="category-title">🌈 Efecto Especial</div>
+                <div class="clothing-buttons" id="effectButtons"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MAPA -->
+<div id="levelMapScreen">
+    <div class="level-map-container">
+        <div class="level-map-title">🚀 ELIGE TU NIVEL</div>
+        <div class="level-map-grid" id="levelMapGrid"></div>
+        <button class="menu-btn" onclick="goToMainMenu()" style="width:100%;margin-top:20px;">← Volver</button>
+    </div>
+</div>
+
+<!-- SELECCIÓN DE PODERES -->
+<div id="powerSelectScreen">
+    <div class="power-select-container">
+        <div class="power-select-title">⚡ SELECCIONA PODERES ⚡</div>
+        <div class="power-select-subtitle">Elige poderes para el nivel</div>
+        <div class="player-money-info">💰 Dinero: <span id="moneyAvailable">0</span></div>
+        <div class="power-grid" id="powerGrid"></div>
+        <div class="selected-powers">Poderes: <span id="selectedCount">0</span> | Costo: <span id="totalCost">0</span>💰</div>
+        <div class="power-buttons-group">
+            <button class="menu-btn" onclick="startGameWithPowers()" style="flex:1;">▶️ INICIAR</button>
+            <button class="menu-btn" onclick="cancelPowerSelection()" style="flex:1;background:linear-gradient(135deg,rgba(255,0,0,0.2),rgba(255,0,0,0.1));border-color:#ff0000;color:#ff0000;">← VOLVER</button>
+        </div>
+    </div>
+</div>
+
+<!-- MANUAL -->
+<div id="manualPanel">
+    <div class="manual-box">
+        <div class="manual-title">📖 MANUAL DE JUEGO</div>
+        <div class="manual-section">
+            <h3>🎮 Controles Básicos</h3>
+            <ul>
+                <li>⬅️ ➡️ Flechas del teclado — Mover la nave</li>
+                <li>ESPACIO — Disparar</li>
+                <li>P — Pausar / Reanudar</li>
+                <li>R — Reintentar (en pantalla de derrota)</li>
+                <li>M — Menú principal (en pantalla de derrota)</li>
+            </ul>
+        </div>
+        <div class="manual-section">
+            <h3>👾 Tipos de Enemigos</h3>
+            <ul>
+                <li>🔴 <b>Básico</b> — 1 disparo para eliminar</li>
+                <li>🔴 <b>Fuerte</b> — Aguanta 3 disparos, barra de vida visible</li>
+                <li>🔴 <b>Veloz</b> — Se mueve muy rápido</li>
+                <li>🟠 <b>Tirador</b> — Dispara proyectiles hacia abajo</li>
+                <li>🟣 <b>Duplicador</b> — Se puede multiplicar (máximo 8)</li>
+                <li>💀 <b>Jefe Final</b> — Enorme, dispara ráfagas, 50 de vida</li>
+            </ul>
+        </div>
+        <div class="manual-section">
+            <h3>⚡ Poderes (se compran antes de cada nivel)</h3>
+            <ul>
+                <li>⚡ <b>Velocidad</b> — Tu nave va 1.5x más rápido por 15s</li>
+                <li>✕ <b>Doble Disparo</b> — Dos balas a la vez por 15s</li>
+                <li>🔥 <b>Fuego Rápido</b> — Cadencia máxima por 15s</li>
+                <li>🛡️ <b>Escudo x3</b> — Bloquea 3 disparos enemigos</li>
+                <li>❤️ <b>Vida Extra</b> — +3 vidas al inicio</li>
+                <li>⏱️ <b>Ralentizar</b> — Todo va lento por 15s</li>
+                <li>🔫 <b>Perforador</b> — Balas atraviesan varios enemigos</li>
+            </ul>
+        </div>
+        <div class="manual-section">
+            <h3>💎 Power-Ups (caen al matar enemigos)</h3>
+            <p>Los enemigos básicos y tiradores a veces sueltan power-ups al morir. ¡Tócalos con tu nave para recogerlos!</p>
+        </div>
+        <div class="manual-section">
+            <h3>👗 Vestidor</h3>
+            <p>Gana monedas completando niveles. Úsalas para comprar colores, avatares, accesorios y efectos para tu nave.</p>
+        </div>
+        <button class="manual-close" onclick="closeManual()">✓ ENTENDIDO</button>
+    </div>
+</div>
+
+<!-- JUEGO -->
+<div id="gameContainer">
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <button id="manualBtn" onclick="toggleManual()">📖 AYUDA</button>
+    <button id="pauseBtn" onclick="togglePause()">⏸️ PAUSA</button>
+    <button id="settingsBtn" onclick="toggleSettings()">⚙️ CONFIG</button>
+    <div id="settingsPanel">
+        <div style="color:#ffff00;font-size:14px;text-shadow:0 0 10px #ffff00;margin-bottom:15px;text-align:center;font-weight:bold;">⚙️ CONFIG</div>
+        <div class="setting-item">
+            <span class="setting-label">🔊 Música</span>
+            <div class="toggle-switch active" id="musicToggle" onclick="toggleMusic()"><div class="toggle-slider"></div></div>
+        </div>
+        <div class="setting-item">
+            <span class="setting-label">Volumen Música</span>
+            <div class="volume-control">
+                <input type="range" id="musicVolume" class="volume-slider" min="0" max="100" value="50" oninput="setMusicVolume(this.value)">
+                <span class="volume-value" id="musicVolumeValue">50%</span>
+            </div>
+        </div>
+        <div class="setting-item">
+            <span class="setting-label">🔊 Efectos</span>
+            <div class="toggle-switch active" id="sfxToggle" onclick="toggleSFX()"><div class="toggle-slider"></div></div>
+        </div>
+        <div class="setting-item">
+            <span class="setting-label">Volumen Efectos</span>
+            <div class="volume-control">
+                <input type="range" id="sfxVolume" class="volume-slider" min="0" max="100" value="70" oninput="setSFXVolume(this.value)">
+                <span class="volume-value" id="sfxVolumeValue">70%</span>
+            </div>
+        </div>
+        <div class="settings-button-group">
+            <button class="small-btn" onclick="reiniciarNivel()">🔄 Reiniciar</button>
+            <button class="small-btn" onclick="goToMainMenu()">🏠 Menú</button>
+        </div>
+        <div class="settings-copyright">© 2026 GALAXIA NAVEGA</div>
+    </div>
+    <div id="gameUI">
+        <div class="ui-section">💰 <span id="scoreValue">0</span></div>
+        <div class="ui-section">📍 <span id="levelNameUI">NIVEL 1</span></div>
+        <div class="ui-section">❤️ <span id="livesValue">3</span></div>
+    </div>
+    <div id="activePowersDisplay"></div>
+    <div class="boss-name" id="bossName">👹 TITÁN OSCURO 👹</div>
+    <div class="enemy-count" id="enemyCount">⚔️ Enemigos: 0</div>
+    <div class="boss-health-bar" id="bossHealthBar"><div class="boss-health-fill" id="bossHealthFill"></div></div>
+    <div class="hearts-display" id="heartsDisplay">❤️ ❤️ ❤️</div>
+    <div id="gameOverMenu">
+        <h1>❌ DERROTA ❌</h1>
+        <p class="menu-text">Nivel <span id="finalLevel">1</span></p>
+        <p class="menu-score">PUNTUACIÓN: <span id="finalScore">0</span></p>
+        <p id="motivationalMsg" class="menu-text" style="font-size:20px;color:#ff9900;margin:15px 0;font-weight:bold;text-shadow:0 0 10px #ff9900;"></p>
+        <button class="menu-btn" onclick="restartFromGameOver()" style="margin:15px auto;display:block;min-width:220px;">🔄 REINTENTAR (R)</button>
+        <button class="menu-btn" onclick="goToMainMenu()" style="margin:5px auto;display:block;min-width:220px;border-color:#aaa;color:#aaa;">🏠 MENÚ (M)</button>
+    </div>
+    <div id="levelCompleteMenu">
+        <h1>✨ ¡COMPLETADO! ✨</h1>
+        <p class="menu-text">Planeta: <span id="levelPlanetName">Aurora Prime</span></p>
+        <p class="menu-score">PUNTUACIÓN: <span id="levelScore">0</span></p>
+        <p class="menu-text">Monedas: <span id="levelCoins" style="color:#ffff00;">0</span></p>
+        <p id="levelMotivational" class="menu-text" style="font-size:19px;color:#00ffcc;margin:12px 0;font-weight:bold;text-shadow:0 0 10px #00ffcc;"></p>
+        <div class="complete-buttons">
+            <button class="menu-btn" onclick="nextLevel()" style="flex:1;">▶️ SIGUIENTE</button>
+            <button class="menu-btn" onclick="goToLevelMap()" style="flex:1;background:linear-gradient(135deg,rgba(255,215,0,0.2),rgba(255,215,0,0.1));border-color:#ffd700;color:#ffd700;">🚀 NIVELES</button>
+            <button class="menu-btn" onclick="reiniciarNivelFromComplete()" style="flex:1;background:linear-gradient(135deg,rgba(0,150,255,0.2),rgba(0,150,255,0.1));border-color:#0096ff;color:#0096ff;">🔄 REINICIAR</button>
+        </div>
+    </div>
+    <div id="victoryScreen">
+        <h1>🏆 ¡VICTORIA! 🏆</h1>
+        <p class="menu-text" style="font-size:26px;color:#ffff00;margin:20px 0;">¡Has Gobernado GALAXIA NAVEGA!</p>
+        <p class="menu-score">PUNTUACIÓN FINAL: <span id="victoryScore">0</span></p>
+        <p class="menu-text" style="font-size:18px;">Monedas Totales: <span id="victoryCoins" style="color:#ffd700;">0</span></p>
+        <p id="victoryMotivational" class="menu-text" style="font-size:20px;color:#00ffcc;margin:12px 0;font-weight:bold;text-shadow:0 0 12px #00ffcc;"></p>
+        <p class="menu-text" style="font-size:20px;margin-top:20px;">⭐ ¡Campeón Intergaláctico! ⭐</p>
+        <button class="menu-btn" onclick="restartFromGameOver()" style="margin:10px auto;display:block;min-width:220px;">🔄 JUGAR DE NUEVO (R)</button>
+        <button class="menu-btn" onclick="goToMainMenu()" style="margin:5px auto;display:block;min-width:220px;border-color:#aaa;color:#aaa;">🏠 MENÚ (M)</button>
+    </div>
+    <div id="controls">⬅️ ➡️ Mover | ESPACIO Disparar | P Pausa</div>
+</div>
+
+<script>
+// ============== VARIABLES GLOBALES ==============
+let pendingPurchase = null;
+
+function showConfirmation(itemName, itemDetails, itemCost, type, itemKey) {
+    pendingPurchase = { type, key: itemKey, itemName, itemDetails, itemCost };
+    document.getElementById('itemName').textContent = itemName;
+    document.getElementById('itemDetails').textContent = itemDetails;
+    document.getElementById('itemCost').textContent = itemCost;
+    document.getElementById('moneyDisplay').textContent = coins;
+    document.getElementById('confirmationModal').classList.add('show');
+}
+
+function showConfirmationWithPreview(itemName, itemDetails, itemCost, type, itemKey, category) {
+    pendingPurchase = { type, key: itemKey, itemName, itemDetails, itemCost };
+    document.getElementById('itemName').textContent = itemName;
+    document.getElementById('itemDetails').textContent = itemDetails;
+    document.getElementById('itemCost').textContent = itemCost;
+    document.getElementById('moneyDisplay').textContent = coins;
+    drawConfirmPreview(type, itemKey, category);
+    document.getElementById('confirmationModal').classList.add('show');
+}
+
+function drawConfirmPreview(type, key, category) {
+    const previewCanvas = document.getElementById('confirmPreviewCanvas');
+    if (!previewCanvas) return;
+    const pctx = previewCanvas.getContext('2d');
+    const tempCustom = { ...playerCustomization };
+    if (type === 'color') tempCustom.color = key;
+    else if (type === 'glasses') tempCustom.glasses = key;
+    else if (type === 'accessory') tempCustom.accessory = key;
+    else if (type === 'secondary') tempCustom.secondary = key;
+    else if (type === 'effect') tempCustom.effect = key;
+    drawShipOnCanvas(previewCanvas, pctx, tempCustom, 70, 80);
+}
+
+function confirmPurchase() {
+    if (!pendingPurchase) return;
+    const { type, key, itemCost } = pendingPurchase;
+    if (coins < itemCost) { showShopMessage('❌ Sin monedas', '#ff4444', '¡No tienes suficiente!'); return; }
+    coins -= itemCost;
+    const catMap = { color: 'colors', glasses: 'glasses', accessory: 'accessories', secondary: 'secondary', effect: 'effects' };
+    const cat = catMap[type];
+    if (cat && !purchasedItems[cat].includes(key)) purchasedItems[cat].push(key);
+    if (type === 'color') playerCustomization.color = key;
+    else if (type === 'glasses') playerCustomization.glasses = key;
+    else if (type === 'accessory') playerCustomization.accessory = key;
+    else if (type === 'secondary') playerCustomization.secondary = key;
+    else if (type === 'effect') playerCustomization.effect = key;
+    renderDressUpOptions();
+    drawPlayerPreview();
+    document.getElementById('confirmationModal').classList.remove('show');
+    pendingPurchase = null;
+    showShopMessage('✅ ¡Comprado!', '#00ff88', 'El artículo es tuyo para siempre');
+}
+
+function cancelPurchase() {
+    document.getElementById('confirmationModal').classList.remove('show');
+    pendingPurchase = null;
+}
+
+// ============== AUDIO ==============
+let audioContext;
+try { audioContext = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+
+let soundSettings = { musicEnabled: true, sfxEnabled: true, musicVolume: 0.5, sfxVolume: 0.7 };
+let musicTimeoutId = null;
+
+function playTone(frequency, duration, volume = 0.3, type = 'sine') {
+    if (!audioContext || !soundSettings.sfxEnabled) return;
+    try {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        oscillator.frequency.value = frequency;
+        oscillator.type = type;
+        gainNode.gain.setValueAtTime(volume * soundSettings.sfxVolume * 0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + duration);
+    } catch(e) {}
+}
+
+function stopBackgroundMusic() {
+    if (musicTimeoutId) { clearTimeout(musicTimeoutId); musicTimeoutId = null; }
+}
+
+function playBackgroundMusic() {
+    stopBackgroundMusic();
+    if (!audioContext || !soundSettings.musicEnabled) return;
+    try {
+        const playNote = (freq, start, duration) => {
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.connect(gain); gain.connect(audioContext.destination);
+            osc.frequency.value = freq; osc.type = 'square';
+            gain.gain.setValueAtTime(0.05 * soundSettings.musicVolume, start);
+            gain.gain.exponentialRampToValueAtTime(0.01, start + duration);
+            osc.start(start); osc.stop(start + duration);
+        };
+        const now = audioContext.currentTime;
+        const notes = [262, 330, 392, 523, 392, 330, 262, 294];
+        let time = now;
+        notes.forEach(freq => { playNote(freq, time, 0.25); time += 0.3; });
+        musicTimeoutId = setTimeout(playBackgroundMusic, 3000);
+    } catch(e) {}
+}
+
+function playShootSound() { playTone(800, 0.08); setTimeout(() => playTone(600, 0.08), 40); }
+function playGameOverSound() { for (let i = 0; i < 4; i++) setTimeout(() => playTone(200 - i * 30, 0.2), i * 150); }
+function playVictorySound() { const sequence = [523, 587, 659, 784, 880, 987, 1047]; sequence.forEach((freq, idx) => { setTimeout(() => playTone(freq, 0.2), idx * 200); }); }
+function playPowerUpSound() { playTone(1200, 0.1); setTimeout(() => playTone(1600, 0.1), 100); setTimeout(() => playTone(1400, 0.15), 200); }
+function playLevelUpSound() { for (let i = 0; i < 5; i++) setTimeout(() => playTone(400 + i * 200, 0.1), i * 150); }
+function playEnemyDeathSound() { playTone(600, 0.15); setTimeout(() => playTone(400, 0.15), 80); }
+function playDuplicateSound() { playTone(900, 0.1); setTimeout(() => playTone(1200, 0.1), 50); }
+
+function toggleMusic() { soundSettings.musicEnabled = !soundSettings.musicEnabled; document.getElementById('musicToggle').classList.toggle('active'); if (soundSettings.musicEnabled) playBackgroundMusic(); else stopBackgroundMusic(); }
+function toggleSFX() { soundSettings.sfxEnabled = !soundSettings.sfxEnabled; document.getElementById('sfxToggle').classList.toggle('active'); }
+function setMusicVolume(value) { soundSettings.musicVolume = value / 100; document.getElementById('musicVolumeValue').textContent = value + '%'; }
+function setSFXVolume(value) { soundSettings.sfxVolume = value / 100; document.getElementById('sfxVolumeValue').textContent = value + '%'; }
+
+// CORRECCIÓN: togglePause() faltaba definida
+function togglePause() {
+    if (gameState === GAME_RUNNING) {
+        gameState = PAUSED;
+        document.getElementById('pauseBtn').textContent = '▶️ REANUDAR';
+    } else if (gameState === PAUSED) {
+        gameState = GAME_RUNNING;
+        document.getElementById('pauseBtn').textContent = '⏸️ PAUSA';
+    }
+}
+
+function toggleManual() { document.getElementById('manualPanel').classList.toggle('show'); }
+function closeManual() { document.getElementById('manualPanel').classList.remove('show'); }
+
+function toggleSettings() {
+    const panel = document.getElementById('settingsPanel');
+    panel.classList.toggle('show');
+    if (panel.classList.contains('show') && gameState === GAME_RUNNING) {
+        gameState = PAUSED;
+    } else if (!panel.classList.contains('show') && gameState === PAUSED && document.getElementById('gameContainer').classList.contains('show')) {
+        gameState = GAME_RUNNING;
+    }
+}
+
+// ============== VESTUARIO ==============
+let playerCustomization = { color: '#00ff00', glasses: 'none', accessory: 'none', secondary: 'none', effect: 'none' };
+let coins = 0;
+let purchasedItems = { colors: ['#00ff00'], glasses: ['none'], accessories: ['none'], secondary: ['none'], effects: ['none'] };
+
+const clothingItems = {
+    colors: [
+        { name: 'Verde', hex: '#00ff00', cost: 0 },
+        { name: 'Magenta', hex: '#ff00ff', cost: 100 },
+        { name: 'Cyan', hex: '#00ffff', cost: 100 },
+        { name: 'Amarillo', hex: '#ffff00', cost: 150 },
+        { name: 'Naranja', hex: '#ff6600', cost: 120 },
+        { name: 'Rosa', hex: '#ff0099', cost: 150 },
+        { name: 'Morado Neón', hex: '#9d4edd', cost: 200 },
+        { name: 'Rosa Profundo', hex: '#ff1493', cost: 180 }
+    ],
+    glasses: [
+        { name: 'Ninguna', type: 'none', cost: 0 },
+        { name: 'Cool 😎', type: 'cool', cost: 150 },
+        { name: 'Nerd 🤓', type: 'nerd', cost: 120 },
+        { name: 'Aviador 👓', type: 'aviator', cost: 200 },
+        { name: 'Cyber 🕶️', type: 'cyber', cost: 250 }
+    ],
+    accessories: [
+        { name: 'Ninguno', type: 'none', cost: 0 },
+        { name: 'Corona 👑', type: 'crown', cost: 300 },
+        { name: 'Capa 🧛', type: 'cape', cost: 250 },
+        { name: 'Fuego 🔥', type: 'fire', cost: 200 },
+        { name: 'Hielo ❄️', type: 'ice', cost: 200 },
+        { name: 'Halo ✨', type: 'halo', cost: 350 }
+    ],
+    secondary: [
+        { name: 'Ninguno', type: 'none', cost: 0 },
+        { name: 'Alas ⚡', type: 'wings', cost: 400 },
+        { name: 'Escudo 🛡️', type: 'shield', cost: 450 },
+        { name: 'Láser 🔫', type: 'laser', cost: 350 },
+        { name: 'Aura 🌟', type: 'aura', cost: 500 }
+    ],
+    effects: [
+        { name: 'Ninguno', type: 'none', cost: 0 },
+        { name: 'Neón 💜', type: 'neon', cost: 500 },
+        { name: 'Dorado ✨', type: 'gold', cost: 600 },
+        { name: 'Holograma 📡', type: 'hologram', cost: 750 }
+    ]
+};
+
+function renderDressUpOptions() {
+    document.getElementById('coinsDisplay').textContent = coins;
+    const createButtons = (items, containerId, category) => {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        const catKey = { colors: 'colors', glasses: 'glasses', accessories: 'accessories', secondary: 'secondary', effects: 'effects' }[category] || category;
+        items.forEach(item => {
+            const btn = document.createElement('button');
+            btn.className = 'clothing-btn';
+            const isFree = item.cost === 0;
+            const itemKey = category === 'colors' ? item.hex : item.type;
+            const isOwned = isFree || (purchasedItems[catKey] && purchasedItems[catKey].includes(itemKey));
+            const canBuy = coins >= item.cost;
+            const isActive = category === 'colors' ? playerCustomization.color === item.hex :
+                             category === 'glasses' ? playerCustomization.glasses === item.type :
+                             category === 'accessories' ? playerCustomization.accessory === item.type :
+                             category === 'secondary' ? playerCustomization.secondary === item.type :
+                             playerCustomization.effect === item.type;
+
+            let statusIcon, statusText, btnColor;
+            if (isActive) { statusIcon = '✅'; statusText = 'EN USO'; btnColor = '#ffffff'; }
+            else if (isOwned) { statusIcon = '👗'; statusText = 'EQUIPAR'; btnColor = '#00ff88'; }
+            else if (canBuy) { statusIcon = '🛒'; statusText = item.cost + '💰'; btnColor = '#ffff00'; }
+            else { statusIcon = '🔒'; statusText = item.cost + '💰'; btnColor = '#ff6666'; }
+
+            btn.style.borderColor = btnColor;
+            btn.style.color = '#ffffff';
+            btn.style.background = isActive ? 'rgba(255,255,255,0.2)' : isOwned ? 'rgba(0,255,136,0.15)' : canBuy ? 'rgba(255,255,0,0.12)' : 'rgba(80,0,0,0.4)';
+            btn.innerHTML = '<span style="font-size:13px;font-weight:bold;">' + item.name + '</span><br><span style="font-size:12px;color:' + btnColor + ';">' + statusIcon + ' ' + statusText + '</span>';
+
+            if (isActive) btn.classList.add('active');
+            btn.onclick = () => {
+                if (isOwned || isActive) {
+                    if (category === 'colors') playerCustomization.color = item.hex;
+                    else if (category === 'glasses') playerCustomization.glasses = item.type;
+                    else if (category === 'accessories') playerCustomization.accessory = item.type;
+                    else if (category === 'secondary') playerCustomization.secondary = item.type;
+                    else playerCustomization.effect = item.type;
+                    renderDressUpOptions();
+                    drawPlayerPreview();
+                } else if (!canBuy) {
+                    showShopMessage('🔒 ¡Te faltan monedas!', '#ff4444', 'Necesitas ' + (item.cost - coins) + ' 💰 más');
+                } else {
+                    const details = category === 'colors' ? 'Color de nave' :
+                                   category === 'glasses' ? 'Gafas' :
+                                   category === 'accessories' ? 'Avatar / Accesorio' :
+                                   category === 'secondary' ? 'Accesorio secundario' : 'Efecto especial';
+                    const key = category === 'colors' ? item.hex : item.type;
+                    const typeStr = category === 'colors' ? 'color' :
+                                   category === 'glasses' ? 'glasses' :
+                                   category === 'accessories' ? 'accessory' :
+                                   category === 'secondary' ? 'secondary' : 'effect';
+                    showConfirmationWithPreview(item.name, details, item.cost, typeStr, key, category);
+                }
+            };
+            container.appendChild(btn);
+        });
+    };
+    createButtons(clothingItems.colors, 'colorButtons', 'colors');
+    createButtons(clothingItems.glasses, 'glassesButtons', 'glasses');
+    createButtons(clothingItems.accessories, 'accessoryButtons', 'accessories');
+    createButtons(clothingItems.secondary, 'secondaryButtons', 'secondary');
+    createButtons(clothingItems.effects, 'effectButtons', 'effects');
+}
+
+function showShopMessage(title, color, msg) {
+    const existing = document.getElementById('shopMsg');
+    if (existing) existing.remove();
+    const div = document.createElement('div');
+    div.id = 'shopMsg';
+    div.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.95);border:3px solid ' + color + ';color:' + color + ';padding:15px 30px;border-radius:10px;font-size:18px;font-weight:bold;z-index:400;text-align:center;box-shadow:0 0 20px ' + color + ';animation:popIn 0.3s ease-out;';
+    div.innerHTML = title + '<br><span style="font-size:13px;color:#aaa;">' + msg + '</span>';
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 2000);
+}
+
+// ============== DIBUJO DE NAVE (CORRECCIÓN PRINCIPAL) ==============
+// ERROR ORIGINAL: sintaxis rota con const=` y template literals inválidos
+function drawShipOnCanvas(cvs, pctx, custom, cx, cy) {
+    pctx.clearRect(0, 0, cvs.width, cvs.height);
+    const grad = pctx.createRadialGradient(cx, cy, 5, cx, cy, Math.min(cvs.width, cvs.height) * 0.5);
+    grad.addColorStop(0, '#1a0a3a');
+    grad.addColorStop(1, '#050010');
+    pctx.fillStyle = grad;
+    pctx.fillRect(0, 0, cvs.width, cvs.height);
+
+    // Stars
+    for (let i = 0; i < 30; i++) {
+        const alpha = 0.2 + (i % 5) * 0.1;
+        pctx.fillStyle = 'rgba(255,255,255,' + alpha + ')';
+        pctx.fillRect((i * 73) % cvs.width, (i * 113) % cvs.height, 1, 1);
+    }
+
+    const color = custom.color;
+    const avatarType = custom.accessory;
+    const scale = cvs.width < 160 ? 0.55 : 1;
+    const sh = 40 * scale;
+    const sw = 50 * scale;
+
+    if (custom.effect === 'neon') { pctx.shadowBlur = 20; pctx.shadowColor = color; }
+    else if (custom.effect === 'gold') { pctx.shadowBlur = 18; pctx.shadowColor = '#ffd700'; }
+    else if (custom.effect === 'hologram') { pctx.shadowBlur = 14; pctx.shadowColor = '#00ffff'; pctx.globalAlpha = 0.85; }
+
+    if (avatarType === 'cape') {
+        pctx.fillStyle = color + '77';
+        pctx.beginPath(); pctx.moveTo(cx - sw/2, cy + sh*0.3); pctx.lineTo(cx - sw/2 - 18*scale, cy - sh*0.3); pctx.lineTo(cx - sw/2 + 8*scale, cy + sh*0.3); pctx.closePath(); pctx.fill();
+        pctx.beginPath(); pctx.moveTo(cx + sw/2, cy + sh*0.3); pctx.lineTo(cx + sw/2 + 18*scale, cy - sh*0.3); pctx.lineTo(cx + sw/2 - 8*scale, cy + sh*0.3); pctx.closePath(); pctx.fill();
+    } else if (avatarType === 'fire') {
+        pctx.fillStyle = '#ff6600'; pctx.fillRect(cx - 6*scale, cy + sh/2 + 2, 12*scale, 12*scale);
+        pctx.fillStyle = '#ffaa00'; pctx.fillRect(cx - 3*scale, cy + sh/2 + 8, 6*scale, 10*scale);
+    } else if (avatarType === 'ice') {
+        pctx.fillStyle = '#aaeeff66'; pctx.fillRect(cx - sw/2 - 4, cy - sh/2, sw + 8, sh + 6);
+    }
+
+    pctx.fillStyle = color;
+    pctx.fillRect(cx - sw/2, cy - sh/2, sw, sh);
+    pctx.beginPath();
+    pctx.moveTo(cx, cy - sh/2 - 12*scale);
+    pctx.lineTo(cx + sw/2, cy - sh/2);
+    pctx.lineTo(cx - sw/2, cy - sh/2);
+    pctx.closePath();
+    pctx.fill();
+
+    if (custom.secondary === 'wings') {
+        pctx.fillStyle = '#ffe066';
+        pctx.beginPath(); pctx.moveTo(cx - sw/2, cy); pctx.lineTo(cx - sw/2 - 18*scale, cy - 20*scale); pctx.lineTo(cx - sw/2 + 8*scale, cy + 4); pctx.closePath(); pctx.fill();
+        pctx.beginPath(); pctx.moveTo(cx + sw/2, cy); pctx.lineTo(cx + sw/2 + 18*scale, cy - 20*scale); pctx.lineTo(cx + sw/2 - 8*scale, cy + 4); pctx.closePath(); pctx.fill();
+    } else if (custom.secondary === 'shield') {
+        pctx.strokeStyle = '#00ffff88'; pctx.lineWidth = 2;
+        pctx.beginPath(); pctx.arc(cx, cy, sw * 0.8, 0, Math.PI * 2); pctx.stroke();
+    } else if (custom.secondary === 'laser') {
+        pctx.fillStyle = '#ff0000'; pctx.fillRect(cx - 1.5*scale, cy - sh/2 - 28*scale, 3*scale, 28*scale);
+    } else if (custom.secondary === 'aura') {
+        const ag = pctx.createRadialGradient(cx, cy, 8, cx, cy, sw);
+        ag.addColorStop(0, color + '44'); ag.addColorStop(1, 'rgba(0,0,0,0)');
+        pctx.fillStyle = ag; pctx.beginPath(); pctx.arc(cx, cy, sw, 0, Math.PI * 2); pctx.fill();
+    }
+
+    pctx.shadowBlur = 0; pctx.globalAlpha = 1;
+
+    // Cockpit
+    pctx.fillStyle = '#88ccff';
+    pctx.beginPath(); pctx.arc(cx, cy - sh/2 + 6*scale, 7*scale, 0, Math.PI * 2); pctx.fill();
+
+    // Glasses
+    if (custom.glasses !== 'none') {
+        const gy = cy - sh/2 + 6*scale;
+        pctx.lineWidth = 1.5;
+        if (custom.glasses === 'cool') {
+            pctx.fillStyle = '#00000099';
+            pctx.fillRect(cx - 11*scale, gy - 4*scale, 8*scale, 7*scale);
+            pctx.fillRect(cx + 3*scale, gy - 4*scale, 8*scale, 7*scale);
+            pctx.strokeStyle = '#999';
+            pctx.strokeRect(cx - 11*scale, gy - 4*scale, 8*scale, 7*scale);
+            pctx.strokeRect(cx + 3*scale, gy - 4*scale, 8*scale, 7*scale);
+        } else if (custom.glasses === 'nerd') {
+            pctx.strokeStyle = '#ff9900';
+            pctx.beginPath(); pctx.arc(cx - 6*scale, gy, 5*scale, 0, Math.PI * 2); pctx.stroke();
+            pctx.beginPath(); pctx.arc(cx + 6*scale, gy, 5*scale, 0, Math.PI * 2); pctx.stroke();
+        } else if (custom.glasses === 'cyber') {
+            pctx.fillStyle = '#ff000099';
+            pctx.fillRect(cx - 12*scale, gy - 3*scale, 24*scale, 6*scale);
+            pctx.strokeStyle = '#ff0000';
+            pctx.strokeRect(cx - 12*scale, gy - 3*scale, 24*scale, 6*scale);
+        } else if (custom.glasses === 'aviator') {
+            pctx.strokeStyle = '#ffd700';
+            pctx.beginPath(); pctx.arc(cx - 6*scale, gy, 5*scale, 0, Math.PI * 2); pctx.stroke();
+            pctx.beginPath(); pctx.arc(cx + 6*scale, gy, 5*scale, 0, Math.PI * 2); pctx.stroke();
+        }
+    }
+
+    if (avatarType === 'crown') {
+        pctx.fillStyle = '#ffd700';
+        const cy2 = cy - sh/2 - 14*scale;
+        pctx.beginPath();
+        pctx.moveTo(cx - 10*scale, cy2 + 8*scale);
+        pctx.lineTo(cx - 5*scale, cy2);
+        pctx.lineTo(cx, cy2 + 5*scale);
+        pctx.lineTo(cx + 5*scale, cy2);
+        pctx.lineTo(cx + 10*scale, cy2 + 8*scale);
+        pctx.closePath(); pctx.fill();
+    }
+    if (avatarType === 'halo') {
+        pctx.strokeStyle = '#ffffcc'; pctx.lineWidth = 2;
+        pctx.beginPath(); pctx.ellipse(cx, cy - sh/2 - 16*scale, 16*scale, 5*scale, 0, 0, Math.PI * 2); pctx.stroke();
+    }
+}
+
+function drawPlayerPreview() {
+    const cvs = document.getElementById('playerPreviewCanvas');
+    const pctx = cvs.getContext('2d');
+    drawShipOnCanvas(cvs, pctx, playerCustomization, cvs.width / 2, cvs.height / 2 + 10);
+    pctx.fillStyle = playerCustomization.color;
+    pctx.font = 'bold 12px Courier New';
+    pctx.textAlign = 'center';
+    pctx.fillText('⚡ ' + getEffectName(), cvs.width / 2, cvs.height - 12);
+}
+
+function getEffectName() {
+    const names = { none: 'Nave Estándar', neon: 'Nave Neón', gold: 'Nave Dorada', hologram: 'Nave Holograma' };
+    return names[playerCustomization.effect] || 'Nave';
+}
+
+// ============== NIVELES ==============
+const levelData = [
+    { name: '🌟 AURORA ESTELAR', planet: 'Aurora Prime', desc: 'Primeros pasos', enemyTypes: ['basic'], coinsReward: 150, enemyCount: 5 },
+    { name: '💨 VIENTO SIDERAL', planet: 'Ventus', desc: 'Rápidos como el rayo', enemyTypes: ['basic', 'fast'], coinsReward: 250, enemyCount: 6 },
+    { name: '🔴 COLOSO ROJO', planet: 'Rubion', desc: 'Blindados del cosmos', enemyTypes: ['basic', 'strong'], coinsReward: 350, enemyCount: 6 },
+    { name: '🔫 ZONA DE FUEGO', planet: 'Pyraxis', desc: 'Lluvia de plasma', enemyTypes: ['shooter'], coinsReward: 450, enemyCount: 4 },
+    { name: '🌈 TORMENTA GALÁCTICA', planet: 'Kaleidra', desc: 'Invasión total', enemyTypes: ['basic', 'fast', 'strong'], coinsReward: 550, enemyCount: 8 },
+    { name: '👾 SOMBRA DEL ABISMO', planet: 'Umbra X', desc: 'Se multiplican', enemyTypes: ['duplicator'], coinsReward: 650, enemyCount: 5 },
+    { name: '🔥 INFIERNO DIGITAL', planet: 'Infernus', desc: 'Caos y fuego', enemyTypes: ['duplicator', 'shooter'], coinsReward: 750, enemyCount: 6 },
+    { name: '❄️ CRIPTA HELADA', planet: 'Glacius', desc: 'Fuerza del hielo', enemyTypes: ['duplicator', 'strong'], coinsReward: 850, enemyCount: 6 },
+    { name: '🌀 VÓRTEX SUPREMO', planet: 'Vortexia', desc: 'Caos máximo', enemyTypes: ['basic', 'fast', 'strong'], coinsReward: 950, enemyCount: 8 },
+    { name: '👹 TITAN DEL VACÍO', planet: 'NAVEGA', desc: '💀 JEFE FINAL', enemyTypes: ['boss'], coinsReward: 1500, enemyCount: 1 }
+];
+
+const powerSystem = {
+    speed:     { name: '⚡ Velocidad x1.5', icon: '⚡', desc: '+velocidad 15s', cost: 150, unlockedAt: 1 },
+    dualshot:  { name: '✕ Doble Disparo',  icon: '✕', desc: 'Dispara x2 15s', cost: 200, unlockedAt: 2 },
+    rapidfire: { name: '🔥 Fuego Rápido',  icon: '🔥', desc: 'Rápido 15s',    cost: 180, unlockedAt: 2 },
+    shield:    { name: '🛡️ Escudo x3',     icon: '🛡️', desc: 'Bloquea 3 disparos', cost: 250, unlockedAt: 1 },
+    lifeup:    { name: '❤️ Vida Extra',    icon: '❤️', desc: '+3 vidas',      cost: 300, unlockedAt: 3 },
+    slowmo:    { name: '⏱️ Ralentizar',    icon: '⏱️', desc: 'Lento 15s',    cost: 220, unlockedAt: 4 },
+    pierce:    { name: '🔫 Perforador',    icon: '🔫', desc: 'Atraviesa',     cost: 180, unlockedAt: 3 }
+};
+
+let selectedPowers = [];
+let activePowers = [];
+let unlockedLevels = [0];
+let selectedLevel = 0;
+
+function goToMainMenu() {
+    stopBackgroundMusic();
+    document.getElementById('mainMenu').classList.remove('hidden');
+    document.getElementById('levelMapScreen').classList.remove('show');
+    document.getElementById('dressUpScreen').classList.remove('show');
+    document.getElementById('powerSelectScreen').classList.remove('show');
+    document.getElementById('gameContainer').classList.remove('show');
+    startBackgroundGameplay();
+}
+
+function goToDressUp() {
+    stopBackgroundMusic();
+    document.getElementById('mainMenu').classList.add('hidden');
+    document.getElementById('dressUpScreen').classList.add('show');
+    renderDressUpOptions();
+    drawPlayerPreview();
+}
+
+function goToLevelMap() {
+    stopBackgroundMusic();
+    document.getElementById('mainMenu').classList.add('hidden');
+    document.getElementById('dressUpScreen').classList.remove('show');
+    document.getElementById('powerSelectScreen').classList.remove('show');
+    document.getElementById('levelMapScreen').classList.add('show');
+    document.getElementById('levelCompleteMenu').style.display = 'none';
+    renderLevelMap();
+}
+
+function renderLevelMap() {
+    const grid = document.getElementById('levelMapGrid');
+    grid.innerHTML = '';
+    levelData.forEach((level, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'level-button';
+        if (idx > 0 && !unlockedLevels.includes(idx)) btn.classList.add('locked');
+        if (level.enemyTypes.includes('boss')) btn.classList.add('boss');
+        btn.innerHTML = (level.enemyTypes.includes('boss') ? '<div style="font-size:28px;">👹</div>' : '') +
+            '<div style="font-weight:bold;">Nivel ' + (idx + 1) + '</div>' +
+            '<div style="font-size:12px;margin-top:5px;">' + level.name + '</div>';
+        if (unlockedLevels.includes(idx)) {
+            btn.onclick = () => { selectedLevel = idx; goToPowerSelect(); };
+        }
+        grid.appendChild(btn);
+    });
+}
+
+function goToPowerSelect() {
+    stopBackgroundMusic();
+    document.getElementById('levelMapScreen').classList.remove('show');
+    document.getElementById('powerSelectScreen').classList.add('show');
+    selectedPowers = [];
+    updatePowerSelectUI();
+    renderPowerGrid();
+}
+
+function updatePowerSelectUI() { document.getElementById('moneyAvailable').textContent = coins; }
+
+function renderPowerGrid() {
+    const grid = document.getElementById('powerGrid');
+    grid.innerHTML = '';
+    Object.entries(powerSystem).forEach(([key, power]) => {
+        const btn = document.createElement('button');
+        btn.className = 'power-button';
+        const isUnlocked = selectedLevel >= power.unlockedAt;
+        const canAfford = coins >= power.cost;
+        const isSelected = selectedPowers.includes(key);
+        if (!isUnlocked) btn.classList.add('locked-power');
+        else if (!canAfford && !isSelected) btn.classList.add('unavailable');
+        if (isSelected) btn.style.background = 'linear-gradient(135deg, rgba(255,0,255,0.5), rgba(255,0,255,0.3))';
+        btn.innerHTML = '<div class="power-icon">' + power.icon + '</div>' +
+            '<div class="power-name">' + power.name + '</div>' +
+            '<div class="power-cost">💰 ' + power.cost + '</div>' +
+            '<div class="power-desc">' + power.desc + '</div>';
+        if (isUnlocked && (canAfford || isSelected)) {
+            btn.onclick = () => {
+                if (isSelected) selectedPowers = selectedPowers.filter(p => p !== key);
+                else if (selectedPowers.length < 3) selectedPowers.push(key);
+                document.getElementById('selectedCount').textContent = selectedPowers.length;
+                const totalCost = selectedPowers.reduce((sum, p) => sum + powerSystem[p].cost, 0);
+                document.getElementById('totalCost').textContent = totalCost;
+                renderPowerGrid();
+            };
+        }
+        grid.appendChild(btn);
+    });
+}
+
+function startGameWithPowers() {
+    const totalCost = selectedPowers.reduce((sum, p) => sum + powerSystem[p].cost, 0);
+    if (coins < totalCost) { alert('¡No tienes suficientes monedas!'); return; }
+    coins -= totalCost;
+    activePowers = [...selectedPowers];
+    document.getElementById('powerSelectScreen').classList.remove('show');
+    document.getElementById('gameContainer').classList.add('show');
+    startGamePlay();
+    playBackgroundMusic();
+}
+
+function cancelPowerSelection() {
+    document.getElementById('powerSelectScreen').classList.remove('show');
+    document.getElementById('levelMapScreen').classList.add('show');
+    renderLevelMap();
+}
+
+function nextLevel() {
+    stopBackgroundMusic();
+    document.getElementById('levelCompleteMenu').style.display = 'none';
+    currentLevel++;
+    if (currentLevel >= levelData.length) {
+        showVictory();
+    } else {
+        if (!unlockedLevels.includes(currentLevel)) unlockedLevels.push(currentLevel);
+        selectedLevel = currentLevel;
+        goToPowerSelect();
+    }
+}
+
+function reiniciarNivelFromComplete() {
+    document.getElementById('levelCompleteMenu').style.display = 'none';
+    playBackgroundMusic();
+    resetLevel();
+}
+
+function reiniciarNivel() { resetLevel(); toggleSettings(); }
+
+function startBackgroundGameplay() {
+    const canvas = document.getElementById('backgroundGameplay');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const ctx = canvas.getContext('2d');
+    let frameCount = 0;
+    function drawGameplaySimulation() {
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        gradient.addColorStop(0, '#0a0a3a');
+        gradient.addColorStop(0.5, '#1a0a3a');
+        gradient.addColorStop(1, '#0a0a1a');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        for (let i = 0; i < 300; i++) {
+            const x = (i * 97) % canvas.width;
+            const y = (i * 179) % canvas.height;
+            const opacity = 0.3 + Math.sin(frameCount * 0.015 + i) * 0.4;
+            ctx.fillStyle = 'rgba(255,255,255,' + Math.max(0, opacity) + ')';
+            ctx.fillRect(x, y, 2, 2);
+        }
+        frameCount++;
+        requestAnimationFrame(drawGameplaySimulation);
+    }
+    drawGameplaySimulation();
+}
+
+// ============== JUEGO ==============
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+const GAME_RUNNING = 0, GAME_OVER = 1, LEVEL_COMPLETE = 2, PAUSED = 3;
+let gameState = GAME_RUNNING;
+let score = 0, lives = 3, maxLives = 10, currentLevel = 0, enemiesDefeated = 0, slowMoActive = false;
+
+let activePowerStates = {
+    speed:     { active: false, endTime: 0 },
+    dualshot:  { active: false, endTime: 0 },
+    rapidfire: { active: false, endTime: 0, originalRate: 10 },
+    shield:    { count: 0 },
+    slowmo:    { active: false, endTime: 0 },
+    pierce:    { active: false, endTime: 0 }
+};
+
+class Player {
+    constructor() {
+        this.x = canvas.width / 2 - 25;
+        this.y = canvas.height - 60;
+        this.width = 50; this.height = 50;
+        this.speed = 5; this.fireRate = 10; this.fireCounter = 0;
+    }
+    update(keys) {
+        const currentSpeed = activePowerStates.speed.active ? this.speed * 1.5 : this.speed;
+        if (keys['ArrowLeft'] && this.x > 0) this.x -= currentSpeed;
+        if (keys['ArrowRight'] && this.x < canvas.width - this.width) this.x += currentSpeed;
+        this.fireCounter--;
+    }
+    draw() {
+        const color = playerCustomization.color;
+        const avatarType = playerCustomization.accessory;
+        if (playerCustomization.effect === 'neon') { ctx.shadowBlur = 15; ctx.shadowColor = color; }
+        else if (playerCustomization.effect === 'gold') { ctx.shadowBlur = 12; ctx.shadowColor = '#ffd700'; }
+        else if (playerCustomization.effect === 'hologram') { ctx.shadowBlur = 10; ctx.shadowColor = '#00ffff'; ctx.globalAlpha = 0.9; }
+
+        if (avatarType === 'cape') {
+            ctx.fillStyle = color + '88';
+            ctx.beginPath(); ctx.moveTo(this.x, this.y+this.height*0.5); ctx.lineTo(this.x-18, this.y+this.height*0.1); ctx.lineTo(this.x+5, this.y+this.height*0.5); ctx.closePath(); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(this.x+this.width, this.y+this.height*0.5); ctx.lineTo(this.x+this.width+18, this.y+this.height*0.1); ctx.lineTo(this.x+this.width-5, this.y+this.height*0.5); ctx.closePath(); ctx.fill();
+        } else if (avatarType === 'fire') {
+            ctx.fillStyle = '#ff6600'; ctx.fillRect(this.x+this.width*0.3, this.y+this.height, this.width*0.4, 12);
+            ctx.fillStyle = '#ffaa00'; ctx.fillRect(this.x+this.width*0.38, this.y+this.height+6, this.width*0.24, 10);
+        } else if (avatarType === 'ice') {
+            ctx.fillStyle = '#aaeeff99'; ctx.fillRect(this.x-4, this.y, this.width+8, this.height);
+        }
+
+        ctx.fillStyle = color;
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+        ctx.beginPath();
+        ctx.moveTo(this.x + this.width / 2, this.y - 10);
+        ctx.lineTo(this.x + this.width, this.y);
+        ctx.lineTo(this.x, this.y);
+        ctx.closePath(); ctx.fill();
+
+        if (playerCustomization.secondary === 'wings') {
+            ctx.fillStyle = '#ffe066';
+            ctx.beginPath(); ctx.moveTo(this.x, this.y+10); ctx.lineTo(this.x-14, this.y-10); ctx.lineTo(this.x+8, this.y+12); ctx.closePath(); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(this.x+this.width, this.y+10); ctx.lineTo(this.x+this.width+14, this.y-10); ctx.lineTo(this.x+this.width-8, this.y+12); ctx.closePath(); ctx.fill();
+        } else if (playerCustomization.secondary === 'shield') {
+            ctx.strokeStyle = '#00ffff88'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(this.x+this.width/2, this.y+this.height/2, this.width*0.75, 0, Math.PI*2); ctx.stroke();
+        } else if (playerCustomization.secondary === 'aura') {
+            const ag = ctx.createRadialGradient(this.x+this.width/2, this.y+this.height/2, 5, this.x+this.width/2, this.y+this.height/2, this.width);
+            ag.addColorStop(0, color + '44'); ag.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = ag; ctx.beginPath(); ctx.arc(this.x+this.width/2, this.y+this.height/2, this.width, 0, Math.PI*2); ctx.fill();
+        }
+
+        ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+
+        // Crown
+        if (avatarType === 'crown') {
+            ctx.fillStyle = '#ffd700';
+            const cx = this.x+this.width/2, cy2 = this.y-10;
+            ctx.beginPath(); ctx.moveTo(cx-10,cy2); ctx.lineTo(cx-5,cy2-8); ctx.lineTo(cx,cy2-4); ctx.lineTo(cx+5,cy2-8); ctx.lineTo(cx+10,cy2); ctx.closePath(); ctx.fill();
+        }
+    }
+    shoot() {
+        if (this.fireCounter <= 0) {
+            this.fireCounter = activePowerStates.rapidfire.active ? 5 : this.fireRate;
+            playShootSound();
+            if (activePowerStates.dualshot.active) {
+                return [new Bullet(this.x + 15, this.y), new Bullet(this.x + this.width - 15, this.y)];
+            }
+            return [new Bullet(this.x + this.width / 2 - 2.5, this.y)];
+        }
+        return [];
+    }
+    reset() { this.x = canvas.width / 2 - 25; this.y = canvas.height - 60; }
+    getRect() { return { x: this.x, y: this.y, width: this.width, height: this.height }; }
+}
+
+class Bullet {
+    constructor(x, y) { this.x = x; this.y = y; this.width = 5; this.height = 15; this.speed = 7; this.active = true; }
+    update() { this.y -= this.speed; if (this.y < 0) this.active = false; }
+    draw() { ctx.fillStyle = '#ffff00'; ctx.fillRect(this.x, this.y, this.width, this.height); }
+    getRect() { return { x: this.x, y: this.y, width: this.width, height: this.height }; }
+}
+
+class EnemyBullet {
+    constructor(x, y) { this.x = x; this.y = y; this.width = 5; this.height = 15; this.speed = 4; this.active = true; }
+    update() { this.y += slowMoActive ? this.speed * 0.2 : this.speed; if (this.y > canvas.height) this.active = false; }
+    draw() { ctx.fillStyle = '#ff6600'; ctx.fillRect(this.x, this.y, this.width, this.height); }
+    getRect() { return { x: this.x, y: this.y, width: this.width, height: this.height }; }
+}
+
+class Enemy {
+    constructor(x, y, level, type = 'basic') {
+        this.x = x; this.y = y; this.type = type;
+        const typeProps = {
+            basic:      { width: 40, height: 40, speedX: 2.5, speedY: 0.5, fireChance: 0,     health: 1, color: '#ff0000' },
+            strong:     { width: 45, height: 45, speedX: 1.8, speedY: 0.4, fireChance: 0.005, health: 3, color: '#cc0000' },
+            fast:       { width: 35, height: 35, speedX: 4.5, speedY: 0.6, fireChance: 0,     health: 1, color: '#ff4444' },
+            shooter:    { width: 40, height: 40, speedX: 2,   speedY: 0.45,fireChance: 0.08,  health: 1, color: '#ff8800' },
+            duplicator: { width: 42, height: 42, speedX: 2.5, speedY: 0.5, fireChance: 0.015, health: 2, color: '#ff00ff' },
+            boss:       { width: 120,height: 120,speedX: 1,   speedY: 0.2, fireChance: 0.1,   health: 50,color: '#ff0000' }
+        };
+        const props = typeProps[type] || typeProps.basic;
+        Object.assign(this, props);
+        this.speedX = (Math.random() > 0.5 ? 1 : -1) * (this.speedX + level * 0.3);
+        this.speedY += level * 0.08;
+        this.fireChance += level * 0.005;
+        this.health += Math.floor(level / 3);
+        this.maxHealth = this.health;
+        this.bossClones = 0;
+    }
+    update() {
+        this.x += this.speedX;
+        this.y += slowMoActive ? this.speedY * 0.2 : this.speedY;
+        if (this.x <= 0 || this.x >= canvas.width - this.width) this.speedX *= -1;
+        return this.y >= canvas.height - 60;
+    }
+    draw() {
+        ctx.fillStyle = slowMoActive ? '#00ffff' : this.color;
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+        ctx.fillStyle = '#ffff00';
+        ctx.fillRect(this.x + this.width*0.2, this.y + this.height*0.2, this.width*0.2, this.height*0.2);
+        ctx.fillRect(this.x + this.width*0.6, this.y + this.height*0.2, this.width*0.2, this.height*0.2);
+        if (this.maxHealth > 1) {
+            ctx.fillStyle = '#00ff00';
+            ctx.fillRect(this.x, this.y - 8, (this.width * this.health) / this.maxHealth, 4);
+            ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1;
+            ctx.strokeRect(this.x, this.y - 8, this.width, 4);
+        }
+    }
+    shoot() {
+        if (Math.random() < this.fireChance) {
+            if (this.type === 'boss') {
+                const bullets = [];
+                for (let i = 0; i < 5; i++) bullets.push(new EnemyBullet(this.x + this.width/2 + i*20 - 40, this.y + this.height));
+                return bullets;
+            }
+            return new EnemyBullet(this.x + this.width/2, this.y + this.height);
+        }
+        return null;
+    }
+    tryDuplicate() {
+        if (this.type === 'duplicator' && enemies.length < 8 && Math.random() < 0.005) {
+            playDuplicateSound();
+            return new Enemy(this.x + Math.random()*50 - 25, this.y, currentLevel, 'duplicator');
+        }
+        return null;
+    }
+    tryBossDuplicate() {
+        if (this.type === 'boss' && this.bossClones < 1 && Math.random() < 0.003) {
+            playDuplicateSound(); this.bossClones++;
+            return new Enemy(this.x + Math.random()*100 - 50, this.y + 50, currentLevel, 'basic');
+        }
+        return null;
+    }
+    getRect() { return { x: this.x, y: this.y, width: this.width, height: this.height }; }
+}
+
+class PowerUp {
+    constructor(x, y, type) { this.x = x; this.y = y; this.width = 38; this.height = 38; this.type = type; this.speed = 1.5; this.active = true; this.rotation = 0; }
+    update() { this.y += this.speed; this.rotation += 0.05; if (this.y > canvas.height) this.active = false; }
+    draw() {
+        const powerIcons  = { speed:'⚡', dualshot:'✕', rapidfire:'🔥', shield:'🛡️', lifeup:'❤️', slowmo:'⏱️', pierce:'🔫' };
+        const powerColors = { speed:'#00ffff', dualshot:'#ff00ff', rapidfire:'#ffff00', shield:'#ffd700', lifeup:'#ff3366', slowmo:'#00ccff', pierce:'#00ff88' };
+        const powerNames  = { speed:'VEL', dualshot:'2x', rapidfire:'RAP', shield:'ESC', lifeup:'VID', slowmo:'SLO', pierce:'PER' };
+        const col = powerColors[this.type] || '#fff';
+        ctx.save();
+        ctx.translate(this.x + this.width/2, this.y + this.height/2);
+        ctx.rotate(this.rotation);
+        ctx.shadowBlur = 15; ctx.shadowColor = col;
+        ctx.fillStyle = col + '33';
+        ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
+        ctx.strokeStyle = col; ctx.lineWidth = 2.5;
+        ctx.strokeRect(-this.width/2, -this.height/2, this.width, this.height);
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = col; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(powerNames[this.type] || '?', 0, 0);
+        ctx.restore();
+        ctx.font = '16px Arial'; ctx.textAlign = 'center';
+        ctx.fillText(powerIcons[this.type] || '?', this.x + this.width/2, this.y - 4);
+    }
+    getRect() { return { x: this.x, y: this.y, width: this.width, height: this.height }; }
+}
+
+function checkCollision(rect1, rect2) {
+    return rect1.x < rect2.x + rect2.width && rect1.x + rect1.width > rect2.x &&
+           rect1.y < rect2.y + rect2.height && rect1.y + rect1.height > rect2.y;
+}
+
+function createEnemies(count, level) {
+    for (let i = 0; i < count; i++) {
+        const x = Math.random() * (canvas.width - 40);
+        const y = Math.random() * 80 + 10;
+        const types = levelData[level]?.enemyTypes || ['basic'];
+        const type = types[Math.floor(Math.random() * types.length)];
+        enemies.push(new Enemy(x, y, level, type));
+    }
+}
+
+function spawnPowerUp(x, y, enemyType) {
+    if ((enemyType === 'basic' || enemyType === 'shooter') && Math.random() < 0.4) {
+        const powerList = Object.keys(powerSystem);
+        const randomType = powerList[Math.floor(Math.random() * powerList.length)];
+        powerUps.push(new PowerUp(x, y, randomType));
+    }
+}
+
+function updatePowerDisplay() {
+    const display = document.getElementById('activePowersDisplay');
+    const now = Date.now();
+    const status = [];
+    if (activePowerStates.speed.active) status.push('⚡ ' + Math.ceil((activePowerStates.speed.endTime - now) / 1000) + 's');
+    if (activePowerStates.dualshot.active) status.push('✕ ' + Math.ceil((activePowerStates.dualshot.endTime - now) / 1000) + 's');
+    if (activePowerStates.rapidfire.active) status.push('🔥 ' + Math.ceil((activePowerStates.rapidfire.endTime - now) / 1000) + 's');
+    if (activePowerStates.slowmo.active) status.push('⏱️ ' + Math.ceil((activePowerStates.slowmo.endTime - now) / 1000) + 's');
+    if (activePowerStates.pierce.active) status.push('🔫 ' + Math.ceil((activePowerStates.pierce.endTime - now) / 1000) + 's');
+    if (activePowerStates.shield.count > 0) status.push('🛡️ x' + activePowerStates.shield.count);
+    display.textContent = status.length > 0 ? '⚡ PODERES:\n' + status.join('\n') : '';
+}
+
+function updateUI() {
+    document.getElementById('scoreValue').textContent = score;
+    document.getElementById('levelNameUI').textContent = levelData[currentLevel]?.name || 'FINAL';
+    document.getElementById('livesValue').textContent = lives;
+    let hearts = '';
+    for (let i = 0; i < lives; i++) hearts += '❤️ ';
+    document.getElementById('heartsDisplay').textContent = hearts;
+    document.getElementById('enemyCount').textContent = '⚔️ Enemigos: ' + enemies.length;
+    updatePowerDisplay();
+}
+
+function resetLevel() {
+    gameState = GAME_RUNNING;
+    player.reset();
+    bullets = []; enemies = []; enemyBullets = []; powerUps = [];
+    enemiesDefeated = 0; slowMoActive = false;
+    activePowerStates.shield.count = 0;
+    document.getElementById('gameOverMenu').style.display = 'none';
+    document.getElementById('levelCompleteMenu').style.display = 'none';
+    document.getElementById('pauseBtn').textContent = '⏸️ PAUSA';
+    if (currentLevel === levelData.length - 1) {
+        enemies.push(new Enemy(canvas.width / 2 - 60, 30, currentLevel, 'boss'));
+    } else {
+        createEnemies(levelData[currentLevel]?.enemyCount || 5, currentLevel);
+    }
+}
+
+const motivationalPhrases = [
+    "¡El fracaso es el primer paso hacia la victoria! 💪",
+    "¡Cada derrota te hace más fuerte! 🔥",
+    "¡Los héroes no se rinden! ⚡ ¡Inténtalo de nuevo!",
+    "¡El universo te necesita! 🌌 ¡No pares ahora!",
+    "¡Eres más poderoso de lo que crees! 🚀",
+    "¡Los campeones caen y se levantan! 🏆 ¡Tú puedes!",
+    "¡La galaxia te espera! 🌟 ¡Vuelve más fuerte!",
+    "¡Cada intento te acerca al triunfo! ✨",
+    "¡Hoy aprendiste, mañana ganarás! 👑",
+    "¡No hay límites en el cosmos! 🛸 ¡Adelante!"
+];
+const victoryPhrases = [
+    "¡Eres la leyenda de la galaxia! 🌟",
+    "¡El universo inclina la cabeza ante ti! 🏆",
+    "¡Nada puede detenerte! ⚡",
+    "¡El cosmos celebra tu victoria! 🎆",
+    "¡Eres el guardián de Galaxia Navega! 👑"
+];
+
+function showGameOver() {
+    stopBackgroundMusic();
+    document.getElementById('finalLevel').textContent = currentLevel + 1;
+    document.getElementById('finalScore').textContent = score;
+    document.getElementById('motivationalMsg').textContent = motivationalPhrases[Math.floor(Math.random() * motivationalPhrases.length)];
+    document.getElementById('gameOverMenu').style.display = 'block';
+    playGameOverSound();
+}
+
+function showLevelComplete() {
+    stopBackgroundMusic();
+    document.getElementById('levelPlanetName').textContent = levelData[currentLevel].planet;
+    document.getElementById('levelScore').textContent = score;
+    const coinsEarned = levelData[currentLevel].coinsReward;
+    coins += coinsEarned;
+    document.getElementById('levelCoins').textContent = coinsEarned;
+    const allPhrases = [...motivationalPhrases, ...victoryPhrases];
+    const el = document.getElementById('levelMotivational');
+    if (el) el.textContent = allPhrases[Math.floor(Math.random() * allPhrases.length)];
+    document.getElementById('levelCompleteMenu').style.display = 'block';
+    playLevelUpSound();
+}
+
+function showVictory() {
+    stopBackgroundMusic();
+    document.getElementById('victoryScore').textContent = score;
+    document.getElementById('victoryCoins').textContent = coins;
+    document.getElementById('victoryMotivational').textContent = victoryPhrases[Math.floor(Math.random() * victoryPhrases.length)];
+    document.getElementById('victoryScreen').style.display = 'block';
+    playVictorySound();
+}
+
+function startGamePlay() {
+    gameState = GAME_RUNNING;
+    score = 0; lives = 3; maxLives = 10;
+    currentLevel = selectedLevel || 0;
+    enemiesDefeated = 0; slowMoActive = false;
+    activePowerStates = {
+        speed:     { active: false, endTime: 0 },
+        dualshot:  { active: false, endTime: 0 },
+        rapidfire: { active: false, endTime: 0, originalRate: 10 },
+        shield:    { count: 0 },
+        slowmo:    { active: false, endTime: 0 },
+        pierce:    { active: false, endTime: 0 }
+    };
+    player.fireRate = 10;
+
+    activePowers.forEach(power => {
+        const now = Date.now();
+        if (power === 'speed')     { activePowerStates.speed.active = true;     activePowerStates.speed.endTime = now + 15000; playPowerUpSound(); }
+        if (power === 'dualshot')  { activePowerStates.dualshot.active = true;  activePowerStates.dualshot.endTime = now + 15000; playPowerUpSound(); }
+        if (power === 'rapidfire') { activePowerStates.rapidfire.active = true; activePowerStates.rapidfire.endTime = now + 15000; activePowerStates.rapidfire.originalRate = player.fireRate; player.fireRate = 5; playPowerUpSound(); }
+        if (power === 'shield')    { activePowerStates.shield.count = 3; playPowerUpSound(); }
+        if (power === 'lifeup')    { lives = Math.min(lives + 3, maxLives); playPowerUpSound(); }
+        if (power === 'slowmo')    { slowMoActive = true; activePowerStates.slowmo.active = true; activePowerStates.slowmo.endTime = now + 15000; playPowerUpSound(); }
+        if (power === 'pierce')    { activePowerStates.pierce.active = true; activePowerStates.pierce.endTime = now + 15000; playPowerUpSound(); }
+    });
+
+    resetLevel();
+}
+
+let background = {
+    draw() {
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        gradient.addColorStop(0, '#0a0a3a');
+        gradient.addColorStop(0.5, '#1a0a3a');
+        gradient.addColorStop(1, '#0a0a1a');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+};
+
+let player = new Player();
+let bullets = [], enemies = [], enemyBullets = [], powerUps = [];
+const keys = {};
+
+function restartFromGameOver() {
+    document.getElementById('gameOverMenu').style.display = 'none';
+    document.getElementById('victoryScreen').style.display = 'none';
+    goToLevelMap();
+}
+
+window.addEventListener('keydown', (e) => {
+    keys[e.key] = true;
+    if (e.key === ' ') {
+        e.preventDefault();
+        if (gameState === GAME_RUNNING) bullets.push(...player.shoot());
+    }
+    if ((e.key === 'r' || e.key === 'R') && (gameState === GAME_OVER || document.getElementById('victoryScreen').style.display === 'block')) {
+        restartFromGameOver();
+    }
+    if ((e.key === 'm' || e.key === 'M') && (gameState === GAME_OVER || document.getElementById('victoryScreen').style.display === 'block')) {
+        document.getElementById('gameOverMenu').style.display = 'none';
+        document.getElementById('victoryScreen').style.display = 'none';
+        goToMainMenu();
+    }
+    if (e.key === 'p' || e.key === 'P') { togglePause(); }
+});
+window.addEventListener('keyup', (e) => { keys[e.key] = false; });
+
+function gameLoop() {
+    background.draw();
+
+    if (gameState === GAME_RUNNING) {
+        const now = Date.now();
+        if (activePowerStates.speed.active && now > activePowerStates.speed.endTime) activePowerStates.speed.active = false;
+        if (activePowerStates.dualshot.active && now > activePowerStates.dualshot.endTime) activePowerStates.dualshot.active = false;
+        if (activePowerStates.rapidfire.active && now > activePowerStates.rapidfire.endTime) { activePowerStates.rapidfire.active = false; player.fireRate = activePowerStates.rapidfire.originalRate; }
+        if (activePowerStates.slowmo.active && now > activePowerStates.slowmo.endTime) { activePowerStates.slowmo.active = false; slowMoActive = false; }
+        if (activePowerStates.pierce.active && now > activePowerStates.pierce.endTime) activePowerStates.pierce.active = false;
+
+        player.update(keys);
+        bullets = bullets.filter(b => b.active);
+        bullets.forEach(b => b.update());
+        enemyBullets = enemyBullets.filter(b => b.active);
+        enemyBullets.forEach(b => b.update());
+        powerUps = powerUps.filter(p => p.active);
+        powerUps.forEach(p => p.update());
+
+        for (let i = enemies.length - 1; i >= 0; i--) {
+            if (enemies[i].update()) {
+                lives--;
+                enemies.splice(i, 1);
+                if (lives <= 0) { gameState = GAME_OVER; showGameOver(); }
+                continue;
+            }
+            const shoots = enemies[i].shoot();
+            if (Array.isArray(shoots)) enemyBullets.push(...shoots);
+            else if (shoots) enemyBullets.push(shoots);
+
+            if (enemies[i] && enemies[i].type === 'duplicator') { const ne = enemies[i].tryDuplicate(); if (ne) enemies.push(ne); }
+            if (enemies[i] && enemies[i].type === 'boss') { const nb = enemies[i].tryBossDuplicate(); if (nb) enemies.push(nb); }
+        }
+
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            if (!bullets[i]) continue;
+            for (let j = enemies.length - 1; j >= 0; j--) {
+                if (!enemies[j]) continue;
+                if (checkCollision(bullets[i].getRect(), enemies[j].getRect())) {
+                    enemies[j].health--;
+                    if (!activePowerStates.pierce.active) { bullets.splice(i, 1); }
+                    if (enemies[j] && enemies[j].health <= 0) {
+                        score += 10 * (currentLevel + 1);
+                        enemiesDefeated++;
+                        playEnemyDeathSound();
+                        spawnPowerUp(enemies[j].x, enemies[j].y, enemies[j].type);
+                        enemies.splice(j, 1);
+                        if (enemiesDefeated >= (levelData[currentLevel]?.enemyCount || 5) ||
+                            (currentLevel === levelData.length - 1 && enemies.length === 0)) {
+                            gameState = LEVEL_COMPLETE;
+                            showLevelComplete();
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
+        for (let i = enemyBullets.length - 1; i >= 0; i--) {
+            if (checkCollision(enemyBullets[i].getRect(), player.getRect())) {
+                if (activePowerStates.shield.count > 0) {
+                    activePowerStates.shield.count--;
+                } else {
+                    lives--;
+                    if (lives <= 0) { gameState = GAME_OVER; showGameOver(); }
+                }
+                enemyBullets.splice(i, 1);
+            }
+        }
+
+        for (let i = powerUps.length - 1; i >= 0; i--) {
+            if (checkCollision(powerUps[i].getRect(), player.getRect())) {
+                const type = powerUps[i].type;
+                const powerNow = Date.now();
+                if (type === 'speed')     { activePowerStates.speed.active = true;     activePowerStates.speed.endTime = powerNow + 12000; }
+                if (type === 'dualshot')  { activePowerStates.dualshot.active = true;  activePowerStates.dualshot.endTime = powerNow + 12000; }
+                if (type === 'rapidfire') { activePowerStates.rapidfire.active = true; activePowerStates.rapidfire.endTime = powerNow + 12000; player.fireRate = 5; }
+                if (type === 'shield')    { activePowerStates.shield.count += 1; }
+                if (type === 'lifeup')    { lives = Math.min(lives + 1, maxLives); }
+                if (type === 'slowmo')    { slowMoActive = true; activePowerStates.slowmo.active = true; activePowerStates.slowmo.endTime = powerNow + 12000; }
+                if (type === 'pierce')    { activePowerStates.pierce.active = true; activePowerStates.pierce.endTime = powerNow + 12000; }
+                playPowerUpSound();
+                powerUps.splice(i, 1);
+            }
+        }
+
+        if (currentLevel === levelData.length - 1) {
+            document.getElementById('bossHealthBar').classList.add('show');
+            document.getElementById('bossName').classList.add('show');
+            if (enemies.length > 0) {
+                const boss = enemies.find(e => e.type === 'boss');
+                if (boss) document.getElementById('bossHealthFill').style.width = ((boss.health / boss.maxHealth) * 100) + '%';
+            }
+        } else {
+            document.getElementById('bossHealthBar').classList.remove('show');
+            document.getElementById('bossName').classList.remove('show');
+        }
+
+        enemies.forEach(e => e.draw());
+        bullets.forEach(b => b.draw());
+        enemyBullets.forEach(b => b.draw());
+        powerUps.forEach(p => p.draw());
+        player.draw();
+        updateUI();
+
+    } else if (gameState === PAUSED) {
+        enemies.forEach(e => e.draw());
+        bullets.forEach(b => b.draw());
+        enemyBullets.forEach(b => b.draw());
+        powerUps.forEach(p => p.draw());
+        player.draw();
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#ffff00';
+        ctx.font = 'bold 56px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('⏸️ PAUSA ⏸️', canvas.width / 2, canvas.height / 2);
+    }
+
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+startBackgroundGameplay();
+</script>
+</body>
+</html>
